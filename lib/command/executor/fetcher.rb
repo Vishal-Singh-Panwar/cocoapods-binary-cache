@@ -1,6 +1,7 @@
 require "parallel"
 require_relative "base"
 require_relative "../helper/zip"
+require 'zip'
 
 module PodPrebuild
   class CacheFetcher < CommandExecutor
@@ -59,9 +60,22 @@ module PodPrebuild
         )
       end
       zip_paths = Dir[@config.generated_frameworks_dir(in_cache: true) + "/*.zip"]
+      
+      FileUtils.mkdir_p(@config.generated_frameworks_dir)
       Parallel.each(zip_paths, in_threads: 8) do |path|
-        ZipUtils.unzip(path, to_dir: @config.generated_frameworks_dir)
+        extract_zip(path, @config.generated_frameworks_dir)
+        # ZipUtils.unzip(path, to_dir: @config.generated_frameworks_dir)
       end
     end
+
+    def extract_zip(file, destination)
+      Zip::File.open(file) do |zip_file|
+        zip_file.each do |f|
+        fpath = File.join(destination, f.name)
+        zip_file.extract(f, fpath) unless File.exist?(fpath)
+        end
+      end
+    end
+
   end
 end
